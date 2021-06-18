@@ -97,7 +97,7 @@ class EnforcementStatsController(PolicyMixin, RestartMixin, MagmaController):
         self._unmatched_bytes = 0  # Store bytes matched by default rule if any
         self._default_drop_flow_name = \
             kwargs['config']['enforcement']['default_drop_flow_name']
-        self.flow_stats_thread = hub.spawn(self._monitor, poll_interval)
+        #self.flow_stats_thread = hub.spawn(self._monitor, poll_interval)
         self._print_grpc_payload = os.environ.get('MAGMA_PRINT_GRPC_PAYLOAD')
         if self._print_grpc_payload is None:
             self._print_grpc_payload = \
