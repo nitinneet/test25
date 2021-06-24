@@ -28,9 +28,9 @@ extern "C" {
 #include "amf_fsm.h"
 #include "amf_recv.h"
 #include "amf_sap.h"
+#include "amf_app_timer_management.h"
 
 namespace magma5g {
-extern task_zmq_ctx_s amf_app_task_zmq_ctx;
 
 /****************************************************************************
  **                                                                        **
@@ -68,7 +68,7 @@ int amf_handle_security_complete_response(
      * TODO:Stop timer T3560 This to be taken care in upcoming PR
      */
 
-    stop_timer(&amf_app_task_zmq_ctx, smc_proc->T3560.id);
+    amf_app_stop_timer(smc_proc->T3560.id);
     OAILOG_DEBUG(LOG_AMF_APP, "Timer: After stopping SMC MODE timer \n");
     smc_proc->T3560.id = NAS5G_TIMER_INACTIVE_ID;
 
