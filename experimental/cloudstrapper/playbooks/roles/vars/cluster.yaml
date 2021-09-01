@@ -6,8 +6,8 @@
 #Orc8r deployment variables
 orc8rClusterName: Sydney
 orc8rDomainName: bbbath.fbmagma.ninja
-orc8rLabel: 1.5.0
-orc8rVersion: v1.5
+orc8rLabel: 1.6.0
+orc8rVersion: v1.6
 gitHelmRepo: helm15
 
 
@@ -35,6 +35,11 @@ orc8rTfCluster: orc8r
 orc8rTfEs: orc8r-es
 orc8rTfRdsNotifs: orc8r-rds-events
 orc8rTfSnsTopic: orc8r-sns
+orc8rDbName: orc8r
+orc8rDbId: orc8rdb
+orc8rDbEventSubscription: orc8r-rds-events
+orc8rSnsName: orc8r-sns
+
 
 #------------------
 #Cluster-specific Variables ends
