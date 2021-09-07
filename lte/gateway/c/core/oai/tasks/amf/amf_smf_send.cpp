@@ -18,6 +18,8 @@ extern "C" {
 #include "log.h"
 #include "conversions.h"
 #include "3gpp_38.401.h"
+#include "s6a_messages_types.h"
+
 #ifdef __cplusplus
 }
 #endif
@@ -29,6 +31,7 @@ extern "C" {
 #include "SmfServiceClient.h"
 #include "M5GMobilityServiceClient.h"
 #include "amf_app_timer_management.h"
+#include "mme_api.h"
 
 using magma5g::AsyncM5GMobilityServiceClient;
 using magma5g::AsyncSmfServiceClient;
@@ -614,6 +617,112 @@ int amf_smf_handle_ip_address_response(
   }
 
   return rc;
+}
+
+int amf_send_n11_update_location_req(amf_ue_ngap_id_t ue_id) {
+  OAILOG_FUNC_IN(LOG_AMF_APP);
+  ue_m5gmm_context_s* ue_context_p     = NULL;
+  MessageDef* message_p                = NULL;
+  s6a_update_location_req_t* s6a_ulr_p = NULL;
+  int rc                               = RETURNok;
+
+  OAILOG_INFO(
+      LOG_AMF_APP, "Sending S6A UPDATE LOCATION REQ to S6A, ue_id =%u\n",
+      ue_id);
+
+  ue_context_p = amf_ue_context_exists_amf_ue_ngap_id(ue_id);
+
+  if (ue_context_p) {
+    OAILOG_INFO(
+        LOG_AMF_APP, "IMSI HANDLED =%u\n", ue_context_p->amf_context.imsi64);
+  } else {
+    OAILOG_ERROR(LOG_AMF_APP, "ue context not found for the ue_id=%u\n", ue_id);
+    OAILOG_FUNC_RETURN(LOG_AMF_APP, rc);
+  }
+
+  message_p = itti_alloc_new_message(TASK_AMF_APP, S6A_UPDATE_LOCATION_REQ);
+  if (message_p == NULL) {
+    OAILOG_FUNC_RETURN(LOG_AMF_APP, RETURNerror);
+  }
+
+  s6a_ulr_p = &message_p->ittiMsg.s6a_update_location_req;
+  memset((void*) s6a_ulr_p, 0, sizeof(s6a_update_location_req_t));
+
+  IMSI64_TO_STRING(
+      ue_context_p->amf_context.imsi64, s6a_ulr_p->imsi, IMSI_LENGTH);
+
+  s6a_ulr_p->imsi_length    = strlen(s6a_ulr_p->imsi);
+  s6a_ulr_p->initial_attach = INITIAL_ATTACH;
+  plmn_t visited_plmn       = {0};
+  COPY_PLMN(visited_plmn, ue_context_p->amf_context.originating_tai.plmn);
+  memcpy(&s6a_ulr_p->visited_plmn, &visited_plmn, sizeof(plmn_t));
+  s6a_ulr_p->rat_type = RAT_UTRAN;
+  OAILOG_DEBUG(
+      LOG_AMF_APP, "S6A ULR: RAT TYPE = (%d) for (ue_id = %u)\n",
+      s6a_ulr_p->rat_type, ue_id);
+
+  // Set regional_subscription flag
+  s6a_ulr_p->supportedfeatures.regional_subscription = true;
+  /*
+   * Check if we already have UE data
+   * set the skip subscriber data flag as true in case we are sending ULR
+   * against recieved HSS Reset
+   */
+  /*if (ue_context_p->location_info_confirmed_in_hss == true) {
+    s6a_ulr_p->skip_subscriber_data = 1;
+    OAILOG_DEBUG(
+        TASK_MME_APP,
+        "S6A Location information confirmed in HSS (%d) for (ue_id = %u)\n",
+        ue_context_p->location_info_confirmed_in_hss,
+        ue_context_p->mme_ue_s1ap_id);
+  } else {
+    s6a_ulr_p->skip_subscriber_data = 0;
+    OAILOG_DEBUG(
+        TASK_MME_APP,
+        "S6A Location information not confirmed in HSS (%d) for (ue_id = %u)\n",
+        ue_context_p->location_info_confirmed_in_hss,
+        ue_context_p->mme_ue_s1ap_id);
+  }*/
+
+  /*
+   * Check if we have UE 5G-NR
+   * connection supported in Attach request message.
+   * This is done by checking either en_dc flag in ms network capability or
+   * by checking  dcnr flag in ue network capability.
+   */
+  s6a_ulr_p->dual_regis_5g_ind = 1;
+
+  /*if (ue_context_p->emm_context._ue_network_capability.dcnr) {
+    s6a_ulr_p->dual_regis_5g_ind = 1;
+  } else {
+    s6a_ulr_p->dual_regis_5g_ind = 0;
+    OAILOG_DEBUG(
+        TASK_MME_APP,
+        "UE is connected on LTE, Dual registration with 5G-NR is disabled for "
+        "(ue_id = %u)\n",
+        ue_context_p->mme_ue_s1ap_id);
+  }
+
+  // Check if we have voice domain preference IE and send to S6a task
+  if (ue_context_p->emm_context.volte_params.presencemask &
+      VOICE_DOMAIN_PREF_UE_USAGE_SETTING) {
+    s6a_ulr_p->voice_dom_pref_ue_usg_setting =
+        ue_context_p->emm_context.volte_params
+            .voice_domain_preference_and_ue_usage_setting;
+    s6a_ulr_p->presencemask |= S6A_PDN_CONFIG_VOICE_DOM_PREF;
+  }
+  OAILOG_DEBUG(
+      LOG_MME_APP,
+      "0 S6A_UPDATE_LOCATION_REQ imsi %s with length %d for (ue_id = %u)\n",
+      s6a_ulr_p->imsi, s6a_ulr_p->imsi_length, ue_context_p->mme_ue_s1ap_id);
+        */
+  // rc = send_msg_to_task(&amf_app_task_zmq_ctx, TASK_AMF_APP, message_p);
+  rc = AsyncSmfServiceClient::getInstance().n11_update_location_req(s6a_ulr_p);
+  /*
+   * Do not start this timer in case we are sending ULR after receiving HSS
+   * reset
+   */
+  OAILOG_FUNC_RETURN(LOG_AMF_APP, rc);
 }
 
 }  // namespace magma5g

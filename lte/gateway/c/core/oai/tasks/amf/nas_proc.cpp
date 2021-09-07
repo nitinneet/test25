@@ -465,4 +465,92 @@ int amf_nas_proc_authentication_info_answer(
 
   OAILOG_FUNC_RETURN(LOG_NAS_AMF, rc);
 }
+int amf_handle_s6a_update_location_ans(
+    const s6a_update_location_ans_t* ula_pP) {
+  imsi64_t imsi64                   = INVALID_IMSI64;
+  int rc                            = RETURNerror;
+  amf_context_t* amf_ctxt_p         = NULL;
+  ue_m5gmm_context_s* ue_mm_context = NULL;
+  int amf_cause                     = -1;
+  OAILOG_FUNC_IN(LOG_AMF_APP);
+
+  IMSI_STRING_TO_IMSI64((char*) ula_pP->imsi, &imsi64);
+
+  ue_mm_context = lookup_ue_ctxt_by_imsi(imsi64);
+
+  if (ue_mm_context) {
+    amf_ctxt_p = &ue_mm_context->amf_context;
+  }
+
+  /*if (!(amf_ctxt_p)) {
+    OAILOG_ERROR(LOG_NAS_AMF, "IMSI is invalid\n");
+    OAILOG_FUNC_RETURN(LOG_NAS_AMF, RETURNerror);
+  }*/
+
+  amf_ue_ngap_id_t amf_ue_ngap_id = ue_mm_context->amf_ue_ngap_id;
+
+  OAILOG_DEBUG(
+      LOG_NAS_AMF,
+      "Received update location Answer from Subscriberdb for"
+      " ue_id = %d\n",
+      amf_ue_ngap_id);
+
+  /*if (ula_pP->result.present == S6A_RESULT_BASE) {
+          if (ula_pP->result.choice.base != DIAMETER_SUCCESS) {
+            *
+             * The update location procedure has failed. Notify the NAS module
+             * and don't initiate the bearer creation on S-GW side.
+
+            OAILOG_ERROR(
+                    LOG_MME_APP,
+                    "ULR/ULA procedure returned non success "
+                    "(ULA.result.choice.base=%d)\n",
+                    ula_pP->result.choice.base);
+
+                  OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNerror);
+          }
+    }*/
+
+  // ue_mm_context->subscription_known = SUBSCRIPTION_KNOWN;
+  // ue_mm_context->subscriber_status =
+  //  ula_pP->subscription_data.subscriber_status;
+  // ue_mm_context->access_restriction_data =
+  //  ula_pP->subscription_data.access_restriction;
+  /*
+   * Copy the subscribed UE AMBR (comes from data plan) to UE context
+   */
+  // memcpy(
+  //  &ue_mm_context->subscribed_ue_ambr,
+  //&ula_pP->subscription_data.subscribed_ambr, sizeof(ambr_t));
+
+  OAILOG_DEBUG(
+      LOG_NAS_AMF, "Received UL rate %" PRIu64 " and DL rate %" PRIu64 "\n",
+      ula_pP->subscription_data.subscribed_ambr.br_ul,
+      ula_pP->subscription_data.subscribed_ambr.br_dl);
+
+  /* if (ula_pP->subscription_data.msisdn_length != 0) {
+         ue_mm_context->msisdn = blk2bstr(
+                 ula_pP->subscription_data.msisdn,
+                 ula_pP->subscription_data.msisdn_length);
+   } else {
+         OAILOG_ERROR(
+                 LOG_MME_APP, "No MSISDN received for %s " IMSI_64_FMT "\n",
+                 __FUNCTION__, imsi64);
+   }
+   ue_mm_context->rau_tau_timer		 =
+   ula_pP->subscription_data.rau_tau_timer; ue_mm_context->network_access_mode =
+   ula_pP->subscription_data.access_mode;
+   */
+  /* memcpy(
+           &ue_mm_context->apn_config_profile,
+           &ula_pP->subscription_data.apn_config_profile,
+           sizeof(apn_config_profile_t));
+   memcpy(
+           &ue_mm_context->default_charging_characteristics,
+           &ula_pP->subscription_data.default_charging_characteristics,
+           sizeof(charging_characteristics_t));
+           */
+  return 0;
+}
+
 }  // namespace magma5g
