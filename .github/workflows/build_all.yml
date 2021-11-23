@@ -6,6 +6,7 @@ on:  # yamllint disable-line rule:truthy
     branches:
       - master
       - v1.*
+      - firebase_integtest
   pull_request:
     branches:
       - master
