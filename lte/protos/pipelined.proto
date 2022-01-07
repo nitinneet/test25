@@ -449,7 +449,7 @@ message UESessionSet {
     uint32 in_teid = 8;
     uint32 out_teid = 9;
     UESessionState ue_session_state = 10;
-    IPFlowDL ip_flow_dl = 13;
+    IPFlowDL ip_flow_dl = 11;
 };
 
 message UESessionContextResponse {
